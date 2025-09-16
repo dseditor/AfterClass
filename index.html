@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>放課後戀愛俱樂部</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index.css" />
+<script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.19.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-gray-900 flex items-center justify-center h-screen antialiased text-gray-200">
+
+    <div class="w-full h-full md:max-w-7xl md:h-[95vh] md:max-h-[960px] flex flex-col bg-gray-900/70 backdrop-blur-lg md:rounded-lg shadow-2xl border border-gray-700">
+
+        <!-- Persona Selection View -->
+        <div id="persona-selection-view" class="flex flex-col h-full">
+            <header class="text-center py-6 md:py-8 px-4">
+                <h1 class="main-title">放課後戀愛俱樂部</h1>
+                <p class="text-md md:text-lg text-gray-200 mt-2">加入社團，與心儀的AI學長姐聊天，創造你的專屬戀愛故事</p>
+            </header>
+            <main class="flex-grow p-4 overflow-y-auto">
+                <h2 class="text-xl font-semibold text-white mb-4 px-4">女朋友</h2>
+                <div id="female-persona-list" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <!-- Female personas here -->
+                </div>
+                <h2 class="text-xl font-semibold text-white mt-6 mb-4 px-4">男朋友</h2>
+                <div id="male-persona-list" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <!-- Male personas here -->
+                </div>
+            </main>
+            <footer class="p-4 grid grid-cols-2 gap-4 border-t border-gray-700 bg-gray-900/50 md:rounded-b-lg">
+                <button id="upload-zip-btn" class="w-full bg-fuchsia-500 hover:bg-fuchsia-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition-transform hover:scale-105">繼續對話</button>
+                <button id="create-persona-btn" class="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3 px-4 rounded-lg text-lg transition-transform hover:scale-105">招募新同學</button>
+            </footer>
+        </div>
+
+        <!-- Chat View -->
+        <div id="chat-view" class="hidden flex-1 flex flex-col h-full bg-gray-900/60 md:rounded-lg">
+             <header class="flex items-center justify-between text-white p-3 border-b border-gray-700 bg-gray-800/80 md:rounded-t-lg">
+                <div class="flex items-center">
+                    <button id="back-button" class="p-2 rounded-full hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <div id="chat-header-avatar-container" class="relative w-12 h-12 mx-3">
+                        <!-- Avatar added by JS -->
+                    </div>
+                    <div>
+                        <p id="chat-header-name" class="text-lg font-bold">聊天視窗</p>
+                        <p id="chat-status" class="text-sm text-green-300">在線</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                     <button id="date-btn" class="icon-button" title="安排約會">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path d="M3.5 4A1.5 1.5 0 002 5.5v1.561a2.5 2.5 0 011.087 2.113 2.499 2.499 0 01-1.087 2.113V14.5A1.5 1.5 0 003.5 16h13a1.5 1.5 0 001.5-1.5v-1.561a2.5 2.5 0 01-1.087-2.113c0-.817.383-1.553 1.087-2.113V5.5A1.5 1.5 0 0016.5 4h-13zM12 11.25a.75.75 0 000-1.5H8a.75.75 0 000 1.5h4z" /></svg>
+                     </button>
+                     <button id="generate-story-btn" class="icon-button" title="我的故事">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm3.707 5.707a1 1 0 00-1.414-1.414L7 7.586V5a1 1 0 00-2 0v5a1 1 0 001 1h5a1 1 0 000-2H8.414l1.293-1.293z" clip-rule="evenodd" /></svg>
+                    </button>
+                    <button id="download-images-btn" class="icon-button" title="下載圖片">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M1 5.25A2.25 2.25 0 013.25 3h13.5A2.25 2.25 0 0119 5.25v9.5A2.25 2.25 0 0116.75 17H3.25A2.25 2.25 0 011 14.75v-9.5zm1.5 5.81v3.69c0 .414.336.75.75.75h13.5a.75.75 0 00.75-.75v-3.69l-2.78-2.78a.75.75 0 00-1.06 0L12 10.94l-1.72-1.72a.75.75 0 00-1.06 0L6 12.44l-1.72-1.72a.75.75 0 00-1.06 0L2.5 11.06zM15 6.25a1.25 1.25 0 11-2.5 0 1.25 1.25 0 012.5 0z" clip-rule="evenodd" /></svg>
+                    </button>
+                    <button id="download-chat-btn" class="icon-button" title="儲存對話">
+                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z" /><path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" /></svg>
+                    </button>
+                    <button id="download-all-chats-btn" class="icon-button" title="儲存所有對話">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path d="M2 3.5A1.5 1.5 0 013.5 2h1.148a1.5 1.5 0 011.465 1.175l.716 3.223a1.5 1.5 0 01-1.052 1.767l-.933.267c-.41.117-.643.555-.48.95a11.542 11.542 0 006.254 6.254c.395.163.833-.07.95-.48l.267-.933a1.5 1.5 0 011.767-1.052l3.223.716A1.5 1.5 0 0118 15.352V16.5a1.5 1.5 0 01-1.5 1.5H15c-1.149 0-2.263-.15-3.326-.43A13.022 13.022 0 012.43 8.326 13.019 13.019 0 012 5V3.5z" /><path d="M16.442 2.058a.75.75 0 00-1.06-1.06L14 2.338l-1.382-1.382a.75.75 0 00-1.06 1.06L12.939 3.5 11.56 4.88a.75.75 0 101.06 1.061L14 4.56l1.382 1.381a.75.75 0 101.06-1.06L15.061 3.5l1.381-1.442z" /></svg>
+                    </button>
+                    <button id="clear-chat-btn" class="icon-button" title="清除對話">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.58.22-2.365.468a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193v-.443A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25-.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clip-rule="evenodd" /></svg>
+                    </button>
+                </div>
+            </header>
+
+            <main id="chat-container" class="flex-1 overflow-y-auto space-y-4 p-4">
+                <!-- Chat messages will be appended here -->
+            </main>
+
+            <div id="loading-indicator" class="hidden flex items-start p-4 space-x-2">
+                <div class="w-8 h-8 rounded-full bg-gray-700 flex-shrink-0 flex items-center justify-center">
+                    <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+                <div class="chat-bubble bot-bubble p-3 rounded-lg flex items-center">
+                     <span id="loading-text" class="text-gray-800">思考中...</span>
+                </div>
+            </div>
+            
+            <div id="error-message" class="hidden text-red-400 text-sm p-2 text-center bg-gray-800"></div>
+
+            <footer class="p-4 bg-gray-800/80 border-t-2 border-gray-700">
+                <div id="gift-preview-container" class="hidden relative w-20 h-20 mb-2 p-1 border-2 border-dashed border-yellow-400 rounded-md">
+                    <img id="gift-preview-image" class="w-full h-full object-cover rounded-md">
+                    <button id="remove-gift-btn" class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold hover:bg-red-700 transition-colors">&times;</button>
+                </div>
+                <div class="relative flex items-center bg-gray-700/50 rounded-lg p-1">
+                    <button id="gift-button" class="h-full w-12 flex items-center justify-center text-gray-400 hover:text-yellow-300 transition duration-200" aria-label="Send a gift">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                          <path d="M3.375 3C2.339 3 1.5 3.84 1.5 4.875v.75c0 1.036.84 1.875 1.875 1.875h17.25c1.035 0 1.875-.84 1.875-1.875v-.75C22.5 3.839 21.66 3 20.625 3H3.375Z" />
+                          <path fill-rule="evenodd" d="M3.087 9l.54 9.176A3 3 0 0 0 6.62 21h10.757a3 3 0 0 0 2.995-2.824L20.914 9H3.087Zm6.163 3.75A.75.75 0 0 1 10 12h4a.75.75 0 0 1 0 1.5h-4a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <input type="text" id="message-input" placeholder="Enter Message" autocomplete="off" class="w-full focus:outline-none pl-2 pr-20 py-3 bg-transparent text-white placeholder-gray-400 transition duration-200">
+                    <button id="send-button" class="absolute right-1 top-1/2 -translate-y-1/2 h-10 w-10 flex items-center justify-center bg-yellow-400 rounded-full text-white hover:bg-yellow-500 transition duration-200" aria-label="Send message">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                          <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.949a.75.75 0 00.95.534h6.105a.75.75 0 000-1.5H4.994L3.105 2.29zM15.25 15.5a.75.75 0 00.95-.534l1.414-4.949a.75.75 0 00-.95-.826L3.105 12.21a.75.75 0 00.534.95h6.105a.75.75 0 000 1.5h6.506z" />
+                        </svg>
+                    </button>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <footer class="absolute bottom-2 left-0 right-0 text-center z-10">
+        <a href="https://linktr.ee/dseditor" target="_blank" rel="noopener noreferrer" class="text-xs text-black-400 hover:text-yellow-300 transition-colors">
+            Made by dseditor 開源非商業使用版本，商用教學請聯絡
+        </a>
+    </footer>
+
+    <input type="file" id="avatar-upload-input" class="hidden" accept="image/*">
+    <input type="file" id="zip-upload-input" class="hidden" accept=".zip">
+    <input type="file" id="gift-upload-input" class="hidden" accept="image/*">
+
+    <!-- Persona Creator Modal -->
+    <div id="persona-creator-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+        <div class="bg-gray-800 border border-gray-700 rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-white">招募社員</h2>
+                     <div class="flex items-center space-x-2">
+                        <button id="randomize-persona-btn" title="隨機生成" class="p-2 rounded-full hover:bg-gray-700 transition-colors">
+                            <svg id="dice-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-yellow-300">
+                              <path fill-rule="evenodd" d="M4.5 3A1.5 1.5 0 0 0 3 4.5v15A1.5 1.5 0 0 0 4.5 21h15a1.5 1.5 0 0 0 1.5-1.5v-15A1.5 1.5 0 0 0 19.5 3h-15Zm7.5 3a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm-4.5 6a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm12-3a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0Zm-4.5 6a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm4.5-3a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0Z" clip-rule="evenodd"></path>
+                            </svg>
+                            <svg id="dice-loading-icon" class="animate-spin h-6 w-6 text-yellow-300 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </button>
+                        <button id="close-creator-modal" class="text-gray-400 hover:text-gray-200">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="creator-step-1" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">同學姓名</label>
+                        <input type="text" id="persona-name" class="w-full px-3 py-2 border border-gray-600 bg-gray-700 text-white placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" placeholder="例如：美奈子 (Minako)">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">社團</label>
+                        <select id="persona-club" class="w-full px-3 py-2 border border-gray-600 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                            <option value="健身社">健身社</option>
+                            <option value="寵物社">寵物社</option>
+                            <option value="熱舞社">熱舞社</option>
+                            <option value="登山社">登山社</option>
+                            <option value="心靈社">心靈社</option>
+                            <option value="團康社">團康社</option>
+                            <option value="校刊社">校刊社</option>
+                            <option value="電腦社">電腦社</option>
+                            <option value="電影社">電影社</option>
+                            <option value="動漫社">動漫社</option>
+                            <option value="家政社">家政社</option>
+                            <option value="美妝社">美妝社</option>
+                            <option value="other">其他 (請輸入)</option>
+                        </select>
+                    </div>
+                    <div id="custom-club-container" class="hidden">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">自訂社團名稱</label>
+                        <input type="text" id="persona-custom-club" class="w-full px-3 py-2 border border-gray-600 bg-gray-700 text-white placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" placeholder="請輸入社團名稱">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">角色性別</label>
+                        <div class="flex items-center space-x-4">
+                            <label class="flex items-center text-gray-300 cursor-pointer">
+                                <input type="radio" name="persona-gender" value="female" class="form-radio h-4 w-4 text-yellow-500 bg-gray-700 border-gray-600 focus:ring-yellow-400" checked>
+                                <span class="ml-2">女性</span>
+                            </label>
+                            <label class="flex items-center text-gray-300 cursor-pointer">
+                                <input type="radio" name="persona-gender" value="male" class="form-radio h-4 w-4 text-yellow-500 bg-gray-700 border-gray-600 focus:ring-yellow-400">
+                                <span class="ml-2">男性</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button id="cancel-creator" class="px-4 py-2 text-gray-300 border border-gray-600 rounded-md hover:bg-gray-700">取消</button>
+                        <button id="generate-persona" class="px-4 py-2 bg-yellow-400 text-gray-900 font-bold rounded-md hover:bg-yellow-500">生成角色</button>
+                    </div>
+                </div>
+
+                <div id="creator-step-2" class="hidden space-y-4">
+                    <h3 class="text-lg font-semibold mb-4 text-white">角色預覽與編輯</h3>
+                    <div id="generated-persona-preview" class="bg-gray-900/50 p-4 rounded-lg">
+                        <!-- Generated content will be inserted here -->
+                    </div>
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button id="back-to-step1" class="px-4 py-2 text-gray-300 border border-gray-600 rounded-md hover:bg-gray-700">返回修改</button>
+                        <button id="save-persona" class="px-4 py-2 bg-fuchsia-500 text-white rounded-md hover:bg-fuchsia-600">儲存角色</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Avatar Prompt Modal -->
+    <div id="edit-avatar-prompt-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+        <div class="bg-gray-800 border border-gray-700 rounded-lg shadow-xl w-full max-w-xl mx-4">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-white">編輯頭像提示詞</h2>
+                    <button id="close-prompt-modal" class="text-gray-400 hover:text-gray-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <p class="text-sm text-gray-400">在這裡修改用於生成AI頭像的英文提示詞。更詳細、自然的描述會產生更好的效果。</p>
+                    <textarea id="avatar-prompt-editor" class="w-full h-40 px-3 py-2 border border-gray-600 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"></textarea>
+                    <div class="flex justify-end space-x-3">
+                        <button id="cancel-prompt-edit" class="px-4 py-2 text-gray-300 border border-gray-600 rounded-md hover:bg-gray-700">取消</button>
+                        <button id="save-prompt-edit" class="px-4 py-2 bg-yellow-400 text-gray-900 font-bold rounded-md hover:bg-yellow-500">儲存並關閉</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Story Modal -->
+    <div id="story-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+        <div class="bg-gray-800 border border-gray-700 rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col">
+            <div class="p-4 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
+                <h2 class="text-2xl font-bold text-white">我們的故事</h2>
+                <button id="close-story-modal" class="text-gray-400 hover:text-gray-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="story-content-container" class="p-6 overflow-y-auto">
+                <div id="story-loading" class="hidden flex flex-col items-center justify-center text-center text-gray-400">
+                    <svg class="animate-spin h-8 w-8 text-yellow-300 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p>AI 正在為你們撰寫專屬故事...</p>
+                </div>
+                <div id="story-text" class="text-gray-300 whitespace-pre-wrap leading-relaxed"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Dating Modal -->
+    <div id="dating-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+        <div class="bg-gray-800 border border-gray-700 rounded-lg shadow-xl w-full max-w-2xl mx-4">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-white">約會計畫</h2>
+                    <button id="close-dating-modal" class="text-gray-400 hover:text-gray-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">選擇地點</label>
+                        <div id="location-options" class="grid grid-cols-5 gap-3">
+                            <!-- Location options will be injected by JS -->
+                        </div>
+                        <div class="flex items-center gap-2 mt-3">
+                            <input type="text" id="custom-location-input" class="flex-grow px-3 py-2 border border-gray-600 bg-gray-700 text-white placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" placeholder="或輸入自訂地點...">
+                            <button id="random-location-btn" class="p-2 rounded-full hover:bg-gray-700 transition-colors" title="隨機地點">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-yellow-300"><path fill-rule="evenodd" d="M15.312 11.342a1.25 1.25 0 11-2.205-1.175L14.28 8.99a.75.75 0 00-1.06-1.06l-1.176 1.175a1.25 1.25 0 11-1.591-1.59l1.176-1.176a.75.75 0 00-1.06-1.06l-1.175 1.175a1.25 1.25 0 11-2.205-1.175L8.99 4.688a.75.75 0 00-1.06-1.06l-1.176 1.175a1.25 1.25 0 11-1.59-1.591l1.176-1.176a.75.75 0 00-1.06-1.06L4.688 2.12a1.25 1.25 0 11-1.175-2.205L2.12 1.312a.75.75 0 00-1.06 1.06l1.175 1.176a1.25 1.25 0 111.59 1.59L2.65 4.024a.75.75 0 001.06 1.06l1.175-1.175a1.25 1.25 0 112.205 1.175L5.719 6.26a.75.75 0 001.06 1.06l1.176-1.175a1.25 1.25 0 111.591 1.59L8.37 8.91a.75.75 0 001.06 1.06l1.175-1.176a1.25 1.25 0 112.205 1.175L11.01 11.312a.75.75 0 001.06 1.06l1.176-1.175a1.25 1.25 0 111.59 1.59l-1.176 1.176a.75.75 0 001.06 1.06l1.175-1.175a1.25 1.25 0 111.175 2.205l-1.401 1.4a.75.75 0 00-1.06-1.06l1.175-1.176z" clip-rule="evenodd" /></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="date-duration" class="block text-sm font-medium text-gray-300 mb-2">約會時長 (1-6 小時)</label>
+                        <input type="number" id="date-duration" class="w-full px-3 py-2 border border-gray-600 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" min="1" max="6" value="3">
+                    </div>
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button id="cancel-dating" class="px-4 py-2 text-gray-300 border border-gray-600 rounded-md hover:bg-gray-700">取消</button>
+                        <button id="start-date-btn" class="px-4 py-2 bg-fuchsia-500 text-white font-bold rounded-md hover:bg-fuchsia-600 flex items-center justify-center">
+                            <span id="start-date-text">開始約會</span>
+                            <svg id="start-date-loading" class="animate-spin h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- AI Date Proposal Modal -->
+    <div id="date-proposal-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+        <div class="bg-gray-800 border border-gray-700 rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div id="date-proposal-content" class="p-6 text-center space-y-4">
+                <div id="date-proposal-avatar" class="mx-auto w-20 h-20 rounded-full bg-gray-700"></div>
+                <h3 id="date-proposal-name" class="text-xl font-bold text-white"></h3>
+                <p id="date-proposal-text" class="text-gray-300"></p>
+                <div class="bg-gray-900/50 p-3 rounded-lg">
+                    <p class="text-sm text-gray-400">約會提案</p>
+                    <p class="text-lg text-white font-semibold"><span id="date-proposal-location"></span> (<span id="date-proposal-duration"></span> 小時)</p>
+                </div>
+                <div class="flex justify-center space-x-4 pt-4">
+                    <button id="decline-date-btn" class="px-6 py-2 text-gray-300 border border-gray-600 rounded-md hover:bg-gray-700">下次再說</button>
+                    <button id="accept-date-btn" class="px-6 py-2 bg-fuchsia-500 text-white font-bold rounded-md hover:bg-fuchsia-600">好啊，走吧！</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>

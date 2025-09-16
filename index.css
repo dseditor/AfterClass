@@ -1,0 +1,229 @@
+body {
+    font-family: 'Inter', sans-serif;
+    color: #d1d5db; /* gray-300 */
+    background-image: url('https://raw.githubusercontent.com/dseditor/pdfbookshelf/main/photos/back.jpg');
+    background-size: cover;
+    background-position: center center;
+    background-attachment: fixed;
+}
+
+.main-title {
+    font-size: 2.5rem; /* 40px */
+    font-weight: 800;
+    background-image: linear-gradient(90deg, #FBBF24, #D946EF, #FBBF24);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-fill-color: transparent;
+    background-size: 200% auto;
+    animation: shine 5s linear infinite;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes shine {
+    to {
+        background-position: -200% center;
+    }
+}
+
+@media (min-width: 768px) {
+    .main-title {
+        font-size: 3.5rem; /* 56px */
+    }
+}
+
+
+#chat-container::-webkit-scrollbar {
+    width: 8px;
+}
+#chat-container::-webkit-scrollbar-track {
+    background: #1f2937; /* gray-800 */
+}
+#chat-container::-webkit-scrollbar-thumb {
+    background: #4b5563; /* gray-600 */
+    border-radius: 4px;
+}
+#chat-container::-webkit-scrollbar-thumb:hover {
+    background: #6b7280; /* gray-500 */
+}
+
+/* New Persona Card Styles */
+.persona-card {
+    background-color: rgba(17, 24, 39, 0.6); /* gray-900 at 60% opacity */
+    border: 1px solid rgba(75, 85, 99, 0.5); /* gray-600 at 50% opacity */
+    backdrop-filter: blur(4px);
+    transition: all 0.2s ease-in-out;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+.persona-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    border-color: #FBBF24; /* yellow-400 */
+}
+.persona-card .persona-avatar {
+    aspect-ratio: 1 / 1;
+    width: 100%;
+    background-color: #374151;
+}
+.persona-card .persona-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 0.75rem;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0));
+}
+.persona-card .card-buttons {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    opacity: 0;
+    transform: translateX(10px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.persona-card:hover .card-buttons {
+    opacity: 1;
+    transform: translateX(0);
+}
+.persona-card .card-buttons button {
+    background-color: rgba(31, 41, 55, 0.8); /* gray-800 with transparency */
+    border: 1px solid #4b5563; /* gray-600 */
+    backdrop-filter: blur(4px);
+}
+.persona-card .card-buttons button:hover {
+    background-color: rgba(251, 191, 36, 0.9); /* yellow-400 with transparency */
+    border-color: #FDE047; /* yellow-300 */
+}
+
+/* Avatar Loading Styles */
+.avatar-container {
+    position: relative;
+}
+.avatar-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(31, 41, 55, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+}
+
+/* New Chat View Styles */
+.chat-bubble {
+    max-width: 85%;
+    word-wrap: break-word;
+}
+.user-bubble {
+    background-color: #c026d3; /* fuchsia-600 */
+    color: white;
+}
+.bot-bubble {
+    background-color: #e5e7eb; /* gray-200 */
+    color: #1f2937; /* gray-800 */
+}
+.chat-image {
+    max-width: 250px;
+    border-radius: 0.5rem;
+}
+.emoji-avatar {
+    font-size: 2.25rem;
+    line-height: 1;
+}
+
+#send-button svg {
+    transform: rotate(90deg);
+}
+
+/* Status color in header */
+#chat-status.text-green-300 {
+    color: #86efac; /* green-300 */
+}
+#chat-status.text-yellow-300 {
+    color: #fde047; /* yellow-300 */
+}
+
+
+/* New Header Icon Buttons with Tooltips */
+.icon-button {
+    position: relative;
+    padding: 0.5rem;
+    border-radius: 9999px;
+    background-color: rgba(75, 85, 99, 0.3); /* gray-600 with transparency */
+    transition: background-color 0.2s ease;
+}
+.icon-button:hover {
+    background-color: rgba(75, 85, 99, 0.7); /* darker gray on hover */
+}
+.icon-button::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    background-color: #111827; /* gray-900 */
+    color: #f9fafb; /* gray-50 */
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem; /* rounded-md */
+    font-size: 0.75rem; /* text-xs */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    pointer-events: none;
+    z-index: 10;
+}
+.icon-button:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Dating Modal Styles */
+.location-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border: 2px solid #4b5563; /* gray-600 */
+    border-radius: 0.5rem; /* rounded-lg */
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: #374151; /* gray-700 */
+}
+.location-option:hover {
+    border-color: #6b7280; /* gray-500 */
+    background-color: #4b5563; /* gray-600 */
+}
+.location-option.selected {
+    border-color: #facc15; /* yellow-400 */
+    background-color: #4b5563; /* gray-600 */
+    color: #facc15; /* yellow-400 */
+}
+.location-option svg {
+    width: 1.75rem; /* w-7 */
+    height: 1.75rem; /* h-7 */
+    margin-bottom: 0.25rem;
+}
+.location-option span {
+    font-size: 0.75rem; /* text-xs */
+    text-align: center;
+}
+
+/* Hide number input spinners */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}

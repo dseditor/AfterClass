@@ -8,6 +8,7 @@ const storyModal = document.getElementById('story-modal')!;
 const closeStoryModal = document.getElementById('close-story-modal')!;
 const storyLoading = document.getElementById('story-loading')!;
 const storyText = document.getElementById('story-text')!;
+const downloadStoryBtn = document.getElementById('download-story-btn') as HTMLButtonElement;
 
 // --- State ---
 let ai: GoogleGenAI;
@@ -18,7 +19,10 @@ let getCurrentPersonaKey: () => string | null;
 // Cache to store generated stories
 const storyCache: { [key: string]: { story: string; historyLength: number } } = {};
 
-const showStoryModal = () => storyModal.classList.remove('hidden');
+const showStoryModal = () => {
+    downloadStoryBtn.disabled = !storyText.textContent || storyText.textContent.startsWith('故事生成失敗');
+    storyModal.classList.remove('hidden');
+};
 const hideStoryModal = () => storyModal.classList.add('hidden');
 
 /**
@@ -30,6 +34,26 @@ export function invalidateStoryCache(key: string) {
     if (storyCache[key]) {
         delete storyCache[key];
     }
+}
+
+function downloadStory() {
+    const persona = getCurrentPersona();
+    const storyContent = storyText.textContent;
+
+    if (!persona || !storyContent || storyContent.startsWith('故事生成失敗')) {
+        alert('沒有可下載的故事內容。');
+        return;
+    }
+
+    const blob = new Blob([storyContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${persona.name}_我們的故事.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }
 
 async function generateStory() {
@@ -47,6 +71,7 @@ async function generateStory() {
     if (storyCache[personaKey] && storyCache[personaKey].historyLength === chatHistory.length) {
         storyText.textContent = storyCache[personaKey].story;
         storyLoading.classList.add('hidden');
+        downloadStoryBtn.disabled = false;
         showStoryModal();
         return;
     }
@@ -58,6 +83,7 @@ async function generateStory() {
 
     storyText.textContent = '';
     storyLoading.classList.remove('hidden');
+    downloadStoryBtn.disabled = true; // Disable while loading
     showStoryModal();
 
     try {
@@ -97,6 +123,7 @@ ${historyForStory}
         });
 
         storyText.textContent = response.text;
+        downloadStoryBtn.disabled = false;
 
         // Save to cache
         storyCache[personaKey] = {
@@ -107,6 +134,7 @@ ${historyForStory}
     } catch (error) {
         console.error("故事生成錯誤:", error);
         storyText.textContent = `故事生成失敗了... 請稍後再試一次。\n\n錯誤訊息: ${error}`;
+        downloadStoryBtn.disabled = true;
     } finally {
         storyLoading.classList.add('hidden');
     }
@@ -126,6 +154,7 @@ export function initStoryModule(
     
     generateStoryBtn.addEventListener('click', generateStory);
     closeStoryModal.addEventListener('click', hideStoryModal);
+    downloadStoryBtn.addEventListener('click', downloadStory);
     storyModal.addEventListener('click', (e) => {
         if (e.target === storyModal) {
             hideStoryModal();

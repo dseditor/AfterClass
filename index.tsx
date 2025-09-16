@@ -2,7 +2,7 @@ import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { MemoryManager, OutputManager, cleanAiResponse, Persona } from "./managers.js";
 import { FileManager } from "./fileManager.js";
 import { initDatingModule } from "./dating.js";
-import { dateProposalInstruction } from "./personas.js";
+import { dateProposalInstruction, commonSystemInstruction } from "./personas.js";
 import { initStoryModule, invalidateStoryCache } from "./story.js";
 
 declare var JSZip: any;
@@ -48,6 +48,8 @@ const diceLoadingIcon = document.getElementById('dice-loading-icon')!;
 const creatorStep1 = document.getElementById('creator-step-1')!;
 const creatorStep2 = document.getElementById('creator-step-2')!;
 const personaNameInput = document.getElementById('persona-name') as HTMLInputElement;
+const fictionalPersonaCheckbox = document.getElementById('fictional-persona-checkbox') as HTMLInputElement;
+const clubSelectionContainer = document.getElementById('club-selection-container')!;
 const personaClubSelect = document.getElementById('persona-club') as HTMLSelectElement;
 const customClubContainer = document.getElementById('custom-club-container')!;
 const personaCustomClubInput = document.getElementById('persona-custom-club') as HTMLInputElement;
@@ -121,6 +123,8 @@ const showPersonaCreator = () => {
     creatorStep2.classList.add('hidden');
 
     personaNameInput.value = '';
+    fictionalPersonaCheckbox.checked = false;
+    clubSelectionContainer.classList.remove('hidden');
     personaClubSelect.value = '健身社'; // Default to first option
     customClubContainer.classList.add('hidden');
     personaCustomClubInput.value = '';
@@ -209,14 +213,11 @@ const randomizePersonaInputs = async () => {
 
 const generatePersonaFromAI = async () => {
     const name = personaNameInput.value.trim();
-    let club = personaClubSelect.value;
-    if (club === 'other') {
-        club = personaCustomClubInput.value.trim();
-    }
     const gender = (document.querySelector('input[name="persona-gender"]:checked') as HTMLInputElement)?.value;
+    const isFictional = fictionalPersonaCheckbox.checked;
 
-    if (!name || !club || !gender) {
-        alert('請填寫角色名稱、社團和性別');
+    if (!name || !gender) {
+        alert('請填寫角色名稱和性別');
         return;
     }
 
@@ -224,37 +225,82 @@ const generatePersonaFromAI = async () => {
     generatePersonaBtn.textContent = '生成中...';
 
     try {
-        const { photoGenerationInstruction } = await import('./personas.js');
-        const prompt = `請為以下角色創建詳細的人格設定，嚴格遵守「男女朋友」的框架：
+        let prompt: string;
+        let schema: any;
+
+        if (isFictional) {
+            prompt = `請為一個戀愛聊天應用程式，根據以下提供的角色名稱，創建一個完整、詳細的角色設定。
+
+**角色名稱：** ${name}
+**角色性別：** ${gender === 'female' ? '女性' : '男性'}
+
+**任務與規則：**
+1.  **辨識與改編**：如果「角色名稱」是一個知名的真實歷史人物、神話角色或虛構作品人物（例如：德川家康、雅典娜），請以該人物的性格與背景為基礎，將其重新想像成一名現代校園的學長或學姊。若非知名人物，則自由發揮創意。
+2.  **創造社團 (club)**：為這個角色創造一個最符合其人物特質的、獨一無二的「學校社團名稱」。
+3.  **生成人設 (prompt)**：根據角色原型和新創造的社團，擴展成一個詳細、約200字的創意角色扮演設定。此內容**僅包含**角色的自稱方式、語氣、個性、說話習慣、對親密互動的詳細描述。**絕不包含**任何系統指令，如拍照能力、禁止使用刪節號或Markdown等。
+4.  **生成其他欄位**：
+    *   \`emoji\`: 一個最能代表角色的 emoji。
+    *   \`description\`: 一句15字以內的特色描述，格式為「[你創造的社團]的[形容詞]學長/姊」。
+    *   \`greeting\`: 一句約50字、符合角色個性的招呼語。
+    *   \`avatarPrompt\`: 一段用於AI繪圖的英文角色外觀描述，營造「RAW檔照片」的真實感。必須嚴格遵循以下風格：以「RAW photo,」開頭，接著是人物描述，然後是場景。最後是相機設定，例如「Sony A7R V + 85mm f/1.4, shallow DOF, natural lighting, photojournalistic style.」，並加入強調真實感的詞彙，例如「Visible skin texture and pores, authentic candid moment, film grain, high ISO.」。絕不能使用「hyperrealistic」或「cinematic」等詞彙。
+5.  **純文字輸出**：所有輸出的文字內容都必須是純文字，絕不包含任何 Markdown 語法（例如 \`**\` 或 \`*\`）。
+
+請直接輸出純文字的JSON物件，不要包含任何Markdown的程式碼區塊標記（例如 \`\`\`json ... \`\`\`）。`;
+
+            schema = {
+                type: Type.OBJECT,
+                properties: {
+                    club: { type: Type.STRING },
+                    emoji: { type: Type.STRING },
+                    description: { type: Type.STRING },
+                    prompt: { type: Type.STRING },
+                    greeting: { type: Type.STRING },
+                    avatarPrompt: { type: Type.STRING },
+                },
+                required: ["club", "emoji", "description", "prompt", "greeting", "avatarPrompt"]
+            };
+
+        } else {
+            let club = personaClubSelect.value;
+            if (club === 'other') {
+                club = personaCustomClubInput.value.trim();
+            }
+             if (!club) {
+                alert('請選擇或輸入社團');
+                generatePersonaBtn.disabled = false;
+                generatePersonaBtn.textContent = '生成角色';
+                return;
+            }
+
+            prompt = `請為以下角色創建詳細的人格設定，嚴格遵守「男女朋友」的框架：
 
 角色名稱：${name}
 所屬社團：${club}
 角色性別：${gender === 'female' ? '女性' : '男性'}
 
 請嚴格遵循以下規則與格式，生成JSON物件：
-1. **生成人設**：根據社團特色，擴展成一個詳細、約200字的「prompt」內容。
-2. **參考現有格式**：產出的「prompt」內容必須模仿預設角色的風格：包含自稱方式、語氣、個性、說話習慣、對親密互動的詳細描述，並且必須包含以下兩條嚴格規則：「從不使用刪節號。」和「你的所有回應都必須是純文字，絕不包含任何思考過程的標記（例如「思緒：」）或 Markdown 語法（例如 ** 或 *）。」。
-3. **注入拍照能力**：在生成的 prompt 的結尾，必須完整地、一字不差地加入以下這段關於拍照能力的文字：\`${photoGenerationInstruction}\`
-4. **生成其他欄位**：
+1. **生成人設 (prompt)**：根據社團特色，擴展成一個詳細、約200字的創意角色扮演設定。此內容**僅包含**角色的自稱方式、語氣、個性、說話習慣、對親密互動的詳細描述。**絕不包含**任何系統指令，如拍照能力、禁止使用刪節號或Markdown等。
+2. **生成其他欄位**：
     * \`emoji\`: 一個最能代表角色的 emoji。
     * \`description\`: 一句15字以內的特色描述，格式為「[社團]的[形容詞]學長/姊」。
     * \`greeting\`: 一句約50字、符合角色個性的招呼語。
     * \`avatarPrompt\`: 一段用於AI繪圖的英文角色外觀描述，營造「RAW檔照片」的真實感。必須嚴格遵循以下風格：以「RAW photo,」開頭，接著是人物描述，然後是場景。最後是相機設定，例如「Sony A7R V + 85mm f/1.4, shallow DOF, natural lighting, photojournalistic style.」，並加入強調真實感的詞彙，例如「Visible skin texture and pores, authentic candid moment, film grain, high ISO.」。絕不能使用「hyperrealistic」或「cinematic」等詞彙。
-5. **純文字輸出**：所有輸出的文字內容（尤其是 prompt 和 greeting）都必須是純文字，絕不包含任何 Markdown 語法（例如 \`**\` 或 \`*\`）。
+3. **純文字輸出**：所有輸出的文字內容都必須是純文字，絕不包含任何 Markdown 語法（例如 \`**\` 或 \`*\`）。
 
 請直接輸出純文字的JSON物件，不要包含任何Markdown的程式碼區塊標記（例如 \`\`\`json ... \`\`\`）。`;
 
-        const schema = {
-            type: Type.OBJECT,
-            properties: {
-                emoji: { type: Type.STRING },
-                description: { type: Type.STRING },
-                prompt: { type: Type.STRING },
-                greeting: { type: Type.STRING },
-                avatarPrompt: { type: Type.STRING },
-            },
-            required: ["emoji", "description", "prompt", "greeting", "avatarPrompt"]
-        };
+            schema = {
+                type: Type.OBJECT,
+                properties: {
+                    emoji: { type: Type.STRING },
+                    description: { type: Type.STRING },
+                    prompt: { type: Type.STRING },
+                    greeting: { type: Type.STRING },
+                    avatarPrompt: { type: Type.STRING },
+                },
+                required: ["emoji", "description", "prompt", "greeting", "avatarPrompt"]
+            };
+        }
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -267,6 +313,9 @@ const generatePersonaFromAI = async () => {
 
         const jsonStr = response.text.trim();
         generatedPersonaData = JSON.parse(jsonStr);
+        
+        // Store the creative-only part of the prompt for the editor
+        generatedPersonaData.creativePrompt = generatedPersonaData.prompt;
 
         generatedPersonaData.name = name;
         generatedPersonaData.gender = gender;
@@ -281,6 +330,7 @@ const generatePersonaFromAI = async () => {
         generatePersonaBtn.textContent = '生成角色';
     }
 };
+
 
 const showPersonaPreview = () => {
     if (!generatedPersonaData) return;
@@ -299,8 +349,8 @@ const showPersonaPreview = () => {
                 </div>
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">角色設定</label>
-                <textarea id="edit-prompt" class="w-full px-3 py-2 border border-gray-600 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400 h-32">${generatedPersonaData.prompt}</textarea>
+                <label class="block text-sm font-medium text-gray-300 mb-1">角色設定 (僅顯示創意部分)</label>
+                <textarea id="edit-prompt" class="w-full px-3 py-2 border border-gray-600 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400 h-32">${generatedPersonaData.creativePrompt}</textarea>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-300 mb-1">招呼語</label>
@@ -314,6 +364,11 @@ const showPersonaPreview = () => {
                 <label class="block text-sm font-medium text-gray-300 mb-1">Emoji</label>
                 <input type="text" id="edit-emoji" class="w-full px-3 py-2 border border-gray-600 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" value="${generatedPersonaData.emoji}" maxlength="2">
             </div>
+             ${generatedPersonaData.club ? `
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1">所屬社團</label>
+                <input type="text" id="edit-club" class="w-full px-3 py-2 border border-gray-600 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" value="${generatedPersonaData.club}" disabled>
+            </div>` : ''}
             <div>
                 <label class="block text-sm font-medium text-gray-300 mb-1">角色描述</label>
                 <input type="text" id="edit-description" class="w-full px-3 py-2 border border-gray-600 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" value="${generatedPersonaData.description}">
@@ -326,7 +381,11 @@ const showPersonaPreview = () => {
 const saveCustomPersona = () => {
     if (!generatedPersonaData) return;
 
-    generatedPersonaData.prompt = (document.getElementById('edit-prompt') as HTMLTextAreaElement).value;
+    const editedCreativePrompt = (document.getElementById('edit-prompt') as HTMLTextAreaElement).value;
+    
+    // Re-attach the common system instructions to the user-edited creative prompt
+    generatedPersonaData.prompt = `${editedCreativePrompt} ${commonSystemInstruction}`;
+    
     generatedPersonaData.greeting = (document.getElementById('edit-greeting') as HTMLTextAreaElement).value;
     generatedPersonaData.avatarPrompt = (document.getElementById('edit-avatar-prompt') as HTMLTextAreaElement).value;
     generatedPersonaData.emoji = (document.getElementById('edit-emoji') as HTMLInputElement).value;
@@ -1080,6 +1139,9 @@ personaCreatorModal.addEventListener('click', (e) => {
         hidePersonaCreator();
     }
 });
+fictionalPersonaCheckbox.addEventListener('change', () => {
+    clubSelectionContainer.classList.toggle('hidden', fictionalPersonaCheckbox.checked);
+});
 personaClubSelect.addEventListener('change', () => {
     if (personaClubSelect.value === 'other') {
         customClubContainer.classList.remove('hidden');
@@ -1087,6 +1149,7 @@ personaClubSelect.addEventListener('change', () => {
         customClubContainer.classList.add('hidden');
     }
 });
+
 
 // Edit Avatar Prompt Modal Listeners
 closePromptModal.addEventListener('click', hideAvatarPromptEditor);
